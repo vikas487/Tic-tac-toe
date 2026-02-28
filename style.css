@@ -191,18 +191,6 @@ body {
     font-size: 1.1rem;
 }
 
-/* === Mode Buttons === */
-.mode-buttons {
-    display: flex;
-    gap: 12px;
-    width: 100%;
-}
-
-.mode-buttons .gold-btn {
-    flex: 1;
-    padding: 14px 12px;
-    font-size: 0.85rem;
-}
 
 /* === Game Card === */
 .game-card {
@@ -574,10 +562,6 @@ body {
         font-size: 2rem;
     }
 
-    .mode-buttons .gold-btn {
-        padding: 12px 8px;
-        font-size: 0.8rem;
-    }
 
     .popup-card {
         padding: 30px 24px;

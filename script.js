@@ -17,8 +17,7 @@
     const xName = document.getElementById('xName');
     const oName = document.getElementById('oName');
     const restartBtn = document.getElementById('restartBtn');
-    const pvpBtn = document.getElementById('pvpBtn');
-    const aiBtn = document.getElementById('aiBtn');
+
     const popupOverlay = document.getElementById('popupOverlay');
     const popupEmoji = document.getElementById('popupEmoji');
     const popupTitle = document.getElementById('popupTitle');
@@ -31,9 +30,7 @@
     let gameBoard = Array(9).fill(null);
     let currentPlayer = 'X';
     let gameActive = true;
-    let gameMode = 'pvp';
     let scores = { X: 0, O: 0, draw: 0 };
-    let aiThinking = false;
 
     const WIN_COMBOS = [
         [0, 1, 2], [3, 4, 5], [6, 7, 8],
@@ -44,8 +41,6 @@
     // === Init ===
     function init() {
         cells.forEach(cell => cell.addEventListener('click', handleClick));
-        pvpBtn.addEventListener('click', () => setMode('pvp'));
-        aiBtn.addEventListener('click', () => setMode('ai'));
         restartBtn.addEventListener('click', resetGame);
         playAgainBtn.addEventListener('click', () => {
             popupOverlay.classList.remove('active');
@@ -57,21 +52,11 @@
         window.addEventListener('resize', resizeCanvas);
     }
 
-    // === Mode ===
-    function setMode(mode) {
-        gameMode = mode;
-        pvpBtn.classList.toggle('active', mode === 'pvp');
-        aiBtn.classList.toggle('active', mode === 'ai');
-        oName.textContent = mode === 'ai' ? 'Computer' : 'Player 2';
-        scores = { X: 0, O: 0, draw: 0 };
-        updateScores();
-        resetGame();
-    }
 
     // === Click ===
     function handleClick(e) {
         const idx = parseInt(e.currentTarget.dataset.index);
-        if (gameBoard[idx] || !gameActive || aiThinking) return;
+        if (gameBoard[idx] || !gameActive) return;
         makeMove(idx, currentPlayer);
     }
 
@@ -96,17 +81,6 @@
         currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
         updateTurn();
         updateHover();
-
-        if (gameMode === 'ai' && currentPlayer === 'O' && gameActive) {
-            aiThinking = true;
-            updateHover();
-            setTimeout(() => {
-                const move = getBestMove();
-                makeMove(move, 'O');
-                aiThinking = false;
-                updateHover();
-            }, 350 + Math.random() * 300);
-        }
     }
 
     // === Win ===
@@ -129,16 +103,11 @@
         combo.forEach(i => cells[i].classList.add('winning-cell'));
         cells.forEach(c => c.classList.add('game-over'));
 
-        setTimeout(() => {
+            setTimeout(() => {
             const isX = player === 'X';
             popupEmoji.textContent = '🏆';
-            if (gameMode === 'ai') {
-                popupTitle.textContent = isX ? 'You Win!' : 'Computer Wins!';
-                popupSub.textContent = isX ? 'Well played!' : 'Try again!';
-            } else {
-                popupTitle.textContent = (isX ? 'Player 1' : 'Player 2') + ' Wins!';
-                popupSub.textContent = 'Great match!';
-            }
+            popupTitle.textContent = (isX ? 'Player 1' : 'Player 2') + ' Wins!';
+            popupSub.textContent = 'Great match!';
             popupTitle.style.color = isX ? 'var(--gold-main)' : 'var(--o-fill)';
             popupOverlay.classList.add('active');
             launchConfetti();
@@ -165,7 +134,6 @@
         gameBoard = Array(9).fill(null);
         currentPlayer = 'X';
         gameActive = true;
-        aiThinking = false;
 
         cells.forEach(cell => {
             cell.querySelector('.cell-content').textContent = '';
@@ -179,9 +147,7 @@
     function updateTurn() {
         const isX = currentPlayer === 'X';
         turnIcon.textContent = isX ? '✕' : '◯';
-        const name = isX
-            ? (gameMode === 'ai' ? 'Your' : "Player 1's")
-            : (gameMode === 'ai' ? "Computer's" : "Player 2's");
+        const name = isX ? "Player 1's" : "Player 2's";
         turnLabel.textContent = name + ' Turn';
         turnBadge.className = 'turn-badge ' + (isX ? 'x-turn' : 'o-turn');
     }
@@ -189,7 +155,7 @@
     function updateHover() {
         cells.forEach(cell => {
             cell.classList.remove('x-hover', 'o-hover');
-            if (!cell.classList.contains('taken') && gameActive && !aiThinking) {
+            if (!cell.classList.contains('taken') && gameActive) {
                 cell.classList.add(currentPlayer === 'X' ? 'x-hover' : 'o-hover');
             }
         });
@@ -207,47 +173,6 @@
         setTimeout(() => el.style.transform = 'scale(1)', 200);
     }
 
-    // === AI (Minimax) ===
-    function getBestMove() {
-        let best = -Infinity, move = -1;
-        for (let i = 0; i < 9; i++) {
-            if (!gameBoard[i]) {
-                gameBoard[i] = 'O';
-                const s = minimax(gameBoard, 0, false);
-                gameBoard[i] = null;
-                if (s > best) { best = s; move = i; }
-            }
-        }
-        return move;
-    }
-
-    function minimax(b, d, isMax) {
-        const w = getWinner(b);
-        if (w === 'O') return 10 - d;
-        if (w === 'X') return d - 10;
-        if (b.every(c => c)) return 0;
-
-        if (isMax) {
-            let v = -Infinity;
-            for (let i = 0; i < 9; i++) {
-                if (!b[i]) { b[i] = 'O'; v = Math.max(v, minimax(b, d + 1, false)); b[i] = null; }
-            }
-            return v;
-        } else {
-            let v = Infinity;
-            for (let i = 0; i < 9; i++) {
-                if (!b[i]) { b[i] = 'X'; v = Math.min(v, minimax(b, d + 1, true)); b[i] = null; }
-            }
-            return v;
-        }
-    }
-
-    function getWinner(b) {
-        for (const [a, c, d] of WIN_COMBOS) {
-            if (b[a] && b[a] === b[c] && b[a] === b[d]) return b[a];
-        }
-        return null;
-    }
 
     // === Confetti ===
     function resizeCanvas() {
